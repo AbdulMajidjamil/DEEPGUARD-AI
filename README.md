@@ -69,7 +69,7 @@ Tech stack: Python 3.10+, FastAPI, Uvicorn, Celery, Redis, PyTorch, torchvision,
 ### Kali Linux / Debian / Ubuntu
 
 ```bash
-git clone <your-repo-url> DEEPGUARD-AI && cd DEEPGUARD-AI
+git clone https://github.com/AbdulMajidjamil/DEEPGUARD-AI.git && cd DEEPGUARD-AI
 chmod +x *.sh                 # needed if the files came from a zip
 ./install.sh --apt --cpu      # venv + packages (--apt installs system packages with sudo, --cpu = small PyTorch wheel)
 ./start.sh                    # prints the dashboard URL, e.g. http://127.0.0.1:8000/
