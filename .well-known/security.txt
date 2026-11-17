@@ -1,0 +1,7 @@
+# RFC 9116. Replace the Contact line with your repository's private advisory URL or a mailbox you read
+# before any public deployment (the owner/repo below is a placeholder).
+Contact: https://github.com/OWNER/DEEPGUARD-AI/security/advisories/new
+Expires: 2027-08-29T00:00:00.000Z
+Preferred-Languages: en
+Canonical: /.well-known/security.txt
+Policy: /security

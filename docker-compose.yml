@@ -1,0 +1,62 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 Abdul Majid Jamil - DEEPGUARD AI (derived from SENTINEL, see DERIVATION.md)
+#
+#   docker compose up --build        dashboard at http://127.0.0.1:8000/
+#   docker compose down              stop (named volume "deepguard-data" is kept)
+#
+# Put a trained checkpoint at ./weights/deepfake_detector.pth to leave demo mode.
+# Redis is reachable only on the compose network (port 6379 is NOT published).
+x-common: &common
+  build: .
+  environment: &env
+    REDIS_URL: redis://redis:6379/0
+    BACKBONE: ${BACKBONE:-resnext50}
+    ENVIRONMENT: ${ENVIRONMENT:-development}
+    API_KEY: ${API_KEY:-}
+    CORS_ORIGINS: ${CORS_ORIGINS:-*}
+    TORCH_THREADS: "1"
+    SPATIAL_BATCH: "4"
+  volumes:
+    - deepguard-data:/app/data
+    - ./weights:/app/weights:ro
+  security_opt:
+    - no-new-privileges:true
+  restart: unless-stopped
+
+services:
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--protected-mode", "yes"]
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  api:
+    <<: *common
+    ports:
+      - "127.0.0.1:8000:8000"   # change to "8000:8000" to expose on the network (set API_KEY first)
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+  worker:
+    <<: *common
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: ["celery", "-A", "worker.celery_app", "worker", "--loglevel=INFO", "--concurrency=1", "--pool=solo"]
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A worker.celery_app inspect ping -d celery@$$HOSTNAME || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  deepguard-data:

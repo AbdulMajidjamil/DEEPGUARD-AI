@@ -1,0 +1,222 @@
+<!doctype html>
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  Copyright 2026 Abdul Majid Jamil
+  DEEPGUARD AI dashboard. Derived project; originally SENTINEL by Dev Parth (see NOTICE / DERIVATION.md).
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DEEPGUARD AI - Deepfake Detection</title>
+  <meta name="description" content="AI-powered deepfake video detection and digital media forensics.">
+  <meta name="color-scheme" content="dark">
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="shell">
+  <aside class="sidebar" aria-label="Primary">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2 4 7v8c0 7.5 5 13 12 15 7-2 12-7.5 12-15V7z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="15" r="4" fill="currentColor"/></svg>
+      <div><strong>DEEPGUARD AI</strong><span>Deepfake forensics</span></div>
+    </div>
+    <nav id="nav">
+      <a href="#overview" data-view="overview">Overview</a>
+      <a href="#analysis" data-view="analysis">Video Analysis</a>
+      <a href="#history" data-view="history">Detection History</a>
+      <a href="#reports" data-view="reports">Forensic Reports</a>
+      <a href="#model" data-view="model">Model Information</a>
+      <a href="#system" data-view="system">System Health</a>
+      <a href="#settings" data-view="settings">Settings</a>
+      <a href="#about" data-view="about">About</a>
+    </nav>
+    <div class="side-foot">
+      <span id="modePill" class="pill">checking...</span>
+      <small>v<span id="verText">2.0.0</span></small>
+    </div>
+  </aside>
+
+  <main id="main" tabindex="-1">
+    <header class="topbar">
+      <h1 id="viewTitle">Overview</h1>
+      <div class="top-actions">
+        <span id="connPill" class="pill">API ...</span>
+        <button type="button" id="refreshBtn" class="btn ghost">Refresh status</button>
+      </div>
+    </header>
+
+    <div id="demoBanner" class="banner warn" role="alert" hidden>
+      <strong>DEMO MODE.</strong> No trained checkpoint is loaded, so verdicts come from a rule-based temporal
+      heuristic, not a trained deepfake classifier. Do not rely on them. See the Model Information page.
+    </div>
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+    <!-- OVERVIEW -->
+    <section id="view-overview" class="view" aria-labelledby="viewTitle">
+      <div class="grid kpis">
+        <div class="card kpi"><span>Analyses run</span><strong id="kpiTotal">0</strong></div>
+        <div class="card kpi"><span>Flagged FAKE</span><strong id="kpiFake" class="bad">0</strong></div>
+        <div class="card kpi"><span>Classified REAL</span><strong id="kpiReal" class="good">0</strong></div>
+        <div class="card kpi"><span>Avg processing</span><strong id="kpiTime">-</strong></div>
+      </div>
+      <div class="grid two">
+        <div class="card">
+          <h2>Verdict distribution</h2>
+          <canvas id="donut" width="320" height="220" role="img" aria-label="REAL versus FAKE verdict counts"></canvas>
+          <p id="donutNote" class="muted">No analyses yet.</p>
+        </div>
+        <div class="card">
+          <h2>Get started</h2>
+          <p>Upload a video with a visible face to analyse it frame by frame. Results stay on this server only
+             for a limited time; your history list is stored in this browser.</p>
+          <div class="row">
+            <a class="btn primary" href="#analysis">Analyse a video</a>
+            <button type="button" id="ovSampleBtn" class="btn">Run bundled sample</button>
+          </div>
+          <h3>Recent analyses</h3>
+          <ul id="recentList" class="list"></ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIDEO ANALYSIS -->
+    <section id="view-analysis" class="view" hidden>
+      <div class="card">
+        <div id="drop" class="drop" tabindex="0" role="button" aria-label="Choose a video file or drop it here">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L7 9m5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <p><strong>Drop a video here</strong> or click to browse</p>
+          <small id="dropHint">MP4, MOV, AVI, MKV, WEBM, M4V</small>
+          <input id="fileInput" type="file" accept="video/*,.mp4,.mov,.avi,.mkv,.webm,.m4v" hidden>
+        </div>
+        <div id="fileInfo" class="file-info" hidden>
+          <span id="fileName"></span><span id="fileSize" class="muted"></span>
+          <button type="button" id="clearFile" class="btn ghost">Remove</button>
+        </div>
+        <p id="formError" class="error" role="alert" hidden></p>
+        <div class="row">
+          <button type="button" id="analyzeBtn" class="btn primary" disabled>Analyse video</button>
+          <button type="button" id="sampleBtn" class="btn">Run bundled sample</button>
+        </div>
+      </div>
+
+      <div id="progressCard" class="card" hidden>
+        <div class="row between">
+          <h2>Processing</h2>
+          <span class="muted">Task ID: <code id="taskId"></code>
+            <button type="button" id="copyTask" class="btn tiny ghost">Copy</button></span>
+        </div>
+        <label class="meter-label" for="uploadBar">Upload <span id="uploadPct">0%</span></label>
+        <progress id="uploadBar" max="100" value="0"></progress>
+        <label class="meter-label" for="procBar">Analysis <span id="procPct">0%</span></label>
+        <progress id="procBar" max="100" value="0"></progress>
+        <p id="procMsg" class="muted" aria-live="polite">Waiting...</p>
+      </div>
+
+      <div id="resultCard" class="card" hidden></div>
+    </section>
+
+    <!-- HISTORY -->
+    <section id="view-history" class="view" hidden>
+      <div class="card">
+        <div class="row between">
+          <h2>Detection history</h2>
+          <button type="button" id="clearHistory" class="btn danger">Clear all</button>
+        </div>
+        <p class="muted">Stored in this browser only. Opening an entry re-fetches the full result from the server,
+           which keeps results for a limited time.</p>
+        <div class="table-wrap">
+          <table id="historyTable">
+            <thead><tr><th>When</th><th>File</th><th>Verdict</th><th>Confidence</th><th>Mode</th><th>Actions</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p id="historyEmpty" class="muted">No analyses yet.</p>
+      </div>
+    </section>
+
+    <!-- REPORTS -->
+    <section id="view-reports" class="view" hidden>
+      <div class="card">
+        <h2>Forensic reports</h2>
+        <p class="muted">Download a completed analysis as a machine-readable JSON file or a printable PDF report.
+           Reports are generated by the server from the stored result.</p>
+        <div class="table-wrap">
+          <table id="reportsTable">
+            <thead><tr><th>When</th><th>File</th><th>Verdict</th><th>Task ID</th><th>Download</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p id="reportsEmpty" class="muted">No completed analyses to report on yet.</p>
+      </div>
+    </section>
+
+    <!-- MODEL -->
+    <section id="view-model" class="view" hidden>
+      <div class="card"><h2>Model</h2><dl id="modelDl" class="dl"></dl></div>
+      <div class="card"><h2>Evaluation</h2><div id="evalBox"></div></div>
+    </section>
+
+    <!-- SYSTEM -->
+    <section id="view-system" class="view" hidden>
+      <div class="grid two">
+        <div class="card"><h2>Services</h2><ul id="svcList" class="list"></ul></div>
+        <div class="card"><h2>Runtime</h2><dl id="sysDl" class="dl"></dl></div>
+      </div>
+      <div class="card">
+        <label class="check"><input type="checkbox" id="autoRefresh"> Auto-refresh every 5 s</label>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="view-settings" class="view" hidden>
+      <div class="card narrow">
+        <h2>Settings</h2>
+        <form id="settingsForm" autocomplete="off">
+          <label for="apiKey">API key <small class="muted">(only needed if the server sets API_KEY)</small></label>
+          <input id="apiKey" type="password" autocomplete="off" spellcheck="false">
+          <label for="pollMs">Status polling interval</label>
+          <select id="pollMs">
+            <option value="1000">1 second</option>
+            <option value="2000">2 seconds</option>
+            <option value="5000">5 seconds</option>
+          </select>
+          <label class="check"><input type="checkbox" id="saveHistory"> Save finished analyses to this browser's history</label>
+          <div class="row">
+            <button type="submit" class="btn primary">Save settings</button>
+            <button type="button" id="testKey" class="btn">Test connection</button>
+          </div>
+        </form>
+        <p class="muted">The API key is stored in this browser's local storage and sent only in the
+           <code>X-API-Key</code> header to this server.</p>
+      </div>
+    </section>
+
+    <!-- ABOUT -->
+    <section id="view-about" class="view" hidden>
+      <div class="card">
+        <h2>About DEEPGUARD AI</h2>
+        <p>DEEPGUARD AI is an AI-powered deepfake video detection and digital media forensics platform built on
+           OpenCV face tracking, a ResNeXt-50 spatial encoder, an LSTM temporal model and Binary Focal Loss.</p>
+        <dl class="dl">
+          <dt>Developer / maintainer</dt><dd>Abdul Majid Jamil</dd>
+          <dt>Derived from</dt><dd>SENTINEL by Dev Parth (Apache-2.0) - <a href="https://github.com/Devparth7-coder/Deepfake-detection1" rel="noopener noreferrer">original repository</a></dd>
+          <dt>License</dt><dd>Apache-2.0 - <a href="/license">LICENSE</a> | <a href="/notice">NOTICE</a> | <a href="/security">Security policy</a></dd>
+          <dt>API docs</dt><dd><a href="/api/docs">/api/docs</a> (when enabled)</dd>
+        </dl>
+        <h3>Limitations</h3>
+        <ul class="bullets">
+          <li>Video only. Image and audio detection are not implemented.</li>
+          <li>Confidence is the model's score for its own verdict, not a guaranteed accuracy.</li>
+          <li>Without a trained checkpoint the app runs in demo mode (rule-based heuristic).</li>
+          <li>Quality depends on face visibility, compression, lighting and how closely the clip resembles training data.</li>
+          <li>Treat results as one indicator in a forensic review, not as proof.</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+</div>
+</body>
+</html>

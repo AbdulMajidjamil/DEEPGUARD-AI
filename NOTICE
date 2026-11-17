@@ -1,0 +1,45 @@
+DEEPGUARD AI
+Copyright 2026 Abdul Majid Jamil (original files and modifications; see DERIVATION.md)
+
+This product is a derivative work of:
+
+  SENTINEL
+  Copyright 2026 Dev Parth
+  https://github.com/Devparth7-coder/Deepfake-detection1
+
+Licensed under the Apache License, Version 2.0.
+See the LICENSE file distributed with this work.
+
+Files that were inherited from SENTINEL and then changed carry a header naming
+the original author and stating that they were modified. Files written for
+DEEPGUARD AI carry "Copyright 2026 Abdul Majid Jamil". DERIVATION.md lists
+which is which. The original copyright and attribution of Dev Parth are kept
+and must be kept in any redistribution.
+
+This product includes software developed by third parties, including:
+
+  FastAPI                          MIT License
+  Starlette / Uvicorn              BSD-3-Clause
+  Celery                           BSD-3-Clause
+  redis-py                         MIT License
+  PyTorch / torchvision            BSD-style (Facebook / PyTorch)
+  OpenCV                           Apache License 2.0
+  NumPy                            BSD-3-Clause
+  Pillow                           HPND / PIL License
+  Pydantic                         MIT License
+  ReportLab                        BSD-3-Clause
+  scikit-learn (dev/test only)     BSD-3-Clause
+
+YuNet face-detection weights (`weights/face_detection_yunet_2023mar.onnx`)
+are from the OpenCV Zoo and remain under their upstream license.
+
+ImageNet-pretrained ResNeXt-50 weights are downloaded at runtime from the
+torchvision model zoo and remain under their upstream terms.
+
+Model checkpoints you train or download yourself, and the datasets used to
+train them (FaceForensics++, Celeb-DF, DFDC, ...), carry their own licenses and
+terms of use. This repository ships NO trained checkpoint and NO dataset.
+
+Redis, when used as a runtime dependency, is licensed separately by Redis Ltd.
+(RSALv2 / SSPL / AGPLv3 depending on version). It is not distributed in
+source form with this repository.

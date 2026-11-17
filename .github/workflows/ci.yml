@@ -1,0 +1,64 @@
+# Copyright 2026 Abdul Majid Jamil
+# SPDX-License-Identifier: Apache-2.0
+name: CI
+
+on:
+  push:
+    branches: [main, master, "deepguard-ai-*"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Syntax and code quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install ruff
+        run: python -m pip install --upgrade pip "ruff>=0.6"
+      - name: Byte-compile every module (syntax check)
+        run: python -m compileall -q .
+      - name: Ruff (syntax errors and undefined/unused names)
+        run: ruff check . --select E9,F
+      - name: Shell script syntax
+        run: for f in *.sh; do bash -n "$f"; done
+      - name: Secret scan (fail on committed keys, tokens or .env files)
+        run: |
+          if git ls-files | grep -E '(^|/)\.env$|\.pem$|\.key$|\.pth$|\.rdb$'; then
+            echo "A secret-like or binary model file is tracked by git"; exit 1
+          fi
+          if git grep -nIE '(AKIA[0-9A-Z]{16}|-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----|ghp_[A-Za-z0-9]{36})' -- . ':!.github'; then
+            echo "Possible secret committed"; exit 1
+          fi
+
+  test:
+    name: Tests (Python ${{ matrix.python-version }}, CPU)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: requirements*.txt
+      - name: Install CPU PyTorch, then the rest
+        run: |
+          python -m pip install --upgrade pip
+          pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements-dev.txt
+      - name: Dependency consistency check
+        run: pip check
+      - name: Run tests (no network model downloads, no GPU, no Redis)
+        env:
+          BACKBONE: resnet18
+          PRETRAINED_BACKBONE: "0"
+        run: python -m pytest tests -q

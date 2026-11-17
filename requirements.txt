@@ -1,0 +1,17 @@
+# DEEPGUARD AI runtime dependencies (Python 3.10+).
+# On a machine without a GPU, install the smaller CPU wheel first:
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+fastapi>=0.115
+uvicorn[standard]>=0.32
+python-multipart>=0.0.12
+aiofiles>=24.1
+celery[redis]>=5.4
+redis>=5.2
+numpy>=1.26
+opencv-python-headless>=4.10
+pillow>=10.0
+torch>=2.4
+torchvision>=0.19
+pydantic>=2.0
+reportlab>=4.0
+tqdm>=4.66
